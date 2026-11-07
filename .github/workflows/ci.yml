@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   python-quality:
-    name: Python quality
+    name: Linting Check
     runs-on: ubuntu-latest
     defaults:
       run:
