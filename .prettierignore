@@ -1,0 +1,5 @@
+node_modules/
+.venv/
+.ruff_cache/
+.next/
+tools/stockfish/

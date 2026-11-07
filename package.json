@@ -1,0 +1,24 @@
+{
+  "name": "tempolab",
+  "version": "1.0.0",
+  "description": "TempoLab is a verification-first chess study copilot. Stockfish generates deterministic evals, candidate moves, and decisive principal variations; versioned RAG retrieves chess context; an LLM produces structured coaching. Every chess claim traces to engine output or verified sources.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ino464/TempoLab.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ino464/TempoLab/issues"
+  },
+  "homepage": "https://github.com/ino464/TempoLab#readme",
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}
