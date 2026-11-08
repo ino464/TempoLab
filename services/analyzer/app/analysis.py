@@ -1,6 +1,7 @@
+import chess
+
 from app.engine import analyze_position
 from app.pgn import parse_pgn
-import chess
 
 
 def analyze(pgn_text):
@@ -19,7 +20,7 @@ def analyze(pgn_text):
 
         else:
             centipawns_difference = after_cp - before_cp
-            if (board.turn == chess.WHITE):
+            if board.turn == chess.WHITE:
                 centipawns_change = centipawns_difference
             else:
                 centipawns_change = -centipawns_difference
