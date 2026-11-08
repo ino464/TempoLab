@@ -26,4 +26,7 @@ def parse_pgn(pgn_text):
                 "move": move.uci(),
             }
         )
+    if not fen_list:
+        raise ValueError("Game contains no moves.")
+        
     return fen_list
