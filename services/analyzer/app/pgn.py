@@ -13,7 +13,6 @@ def parse_pgn(pgn_text):
     fen_list = []
     ply = 0
 
-
     for ply, move in enumerate(game.mainline_moves(), start=1):
         fen_before = board.fen()
         board.push(move)
