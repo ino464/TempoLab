@@ -20,6 +20,6 @@ def health() -> dict[str, str]:
 def analyze_game(request: AnalysisRequest):
     analysis = analyze(request.pgn)
     mistakelist = mistakes(analysis)
-    return {"analysis": analysis
+    return {"analysis": analysis,
     "critical_positions": mistakelist,
     }
