@@ -51,6 +51,30 @@ class AnalysisAPITests(unittest.TestCase):
         response = self.client.post("/api/v1/analyze", json={})
         self.assertEqual(response.status_code, 422)
 
+    def test_openapi_documents_the_nested_response(self):
+        schema = self.client.get("/openapi.json").json()
+        response_schema = schema["paths"]["/api/v1/analyze"]["post"]["responses"][
+            "200"
+        ]["content"]["application/json"]["schema"]
+        self.assertEqual(
+            response_schema["$ref"], "#/components/schemas/AnalysisResponse"
+        )
+        models = schema["components"]["schemas"]
+        self.assertEqual(
+            set(models["AnalysisResponse"]["required"]),
+            {"analysis", "critical_positions"},
+        )
+        self.assertIn("evaluation_before", models["MoveAnalysis"]["properties"])
+        self.assertIn("mate", models["EngineEvaluation"]["properties"])
+
+    def test_invalid_analysis_output_is_a_server_error(self):
+        with (
+            patch("app.main.analyze", return_value=[{"centipawn": -10}]),
+            patch("app.main.mistakes", return_value=[]),
+        ):
+            response = self.client.post("/api/v1/analyze", json={"pgn": "1. e4 *"})
+        self.assertEqual(response.status_code, 500)
+
 
 if __name__ == "__main__":
     unittest.main()
