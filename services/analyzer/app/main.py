@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.analysis import analyze, mistakes
 from app.pgn import PGNError
+from app.schemas import AnalysisResponse
 
 
 class AnalysisRequest(BaseModel):
@@ -17,7 +18,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/api/v1/analyze")
+@app.post("/api/v1/analyze", response_model=AnalysisResponse)
 def analyze_game(request: AnalysisRequest):
     try:
         analysis = analyze(request.pgn)
