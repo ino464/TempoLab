@@ -5,10 +5,23 @@ import { useState } from "react";
 export default function Home() {
   const [pgn, setPgn] = useState("");
 
-  function handleAnalyze() {
-    console.log(pgn);
+  async function handleAnalyze() {
+  const response = await fetch("http://127.0.0.1:8000/api/v1/analyze", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ pgn: pgn }),
+  });
+
+  if (!response.ok) {
+    console.error("Analysis failed:", response.status);
+    return;
   }
 
+  const result = await response.json();
+  console.log(result);
+}
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
       <h1 className="text-2xl font-semibold">TempoLab</h1>
