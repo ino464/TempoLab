@@ -3,15 +3,21 @@ import io
 import chess.pgn
 
 
+class PGNError(ValueError):
+    """A PGN cannot be parsed into a usable game."""
+
+
 def parse_pgn(pgn_text):
     game = chess.pgn.read_game(io.StringIO(pgn_text))
-    if game == None:
-        raise ValueError("empty game")
+    if game is None:
+        raise PGNError("empty game")
     if game.errors:
-        raise ValueError("PGN contains parsing error")
-    board = game.board()
+        raise PGNError("PGN contains parsing error") from game.errors[0]
+    try:
+        board = game.board()
+    except ValueError as error:
+        raise PGNError("PGN contains an invalid starting position") from error
     fen_list = []
-    ply = 0
 
     for ply, move in enumerate(game.mainline_moves(), start=1):
         fen_before = board.fen()
@@ -26,5 +32,5 @@ def parse_pgn(pgn_text):
             }
         )
     if not fen_list:
-        raise ValueError("Game contains no moves.")
+        raise PGNError("Game contains no moves.")
     return fen_list

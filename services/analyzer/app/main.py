@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.analysis import analyze, mistakes
+from app.pgn import PGNError
 
 
 class AnalysisRequest(BaseModel):
@@ -18,8 +19,9 @@ def health() -> dict[str, str]:
 
 @app.post("/api/v1/analyze")
 def analyze_game(request: AnalysisRequest):
-    analysis = analyze(request.pgn)
+    try:
+        analysis = analyze(request.pgn)
+    except PGNError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     mistakelist = mistakes(analysis)
-    return {"analysis": analysis,
-    "critical_positions": mistakelist,
-    }
+    return {"analysis": analysis, "critical_positions": mistakelist}
