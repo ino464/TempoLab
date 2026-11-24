@@ -51,6 +51,31 @@ class AnalysisAPITests(unittest.TestCase):
         response = self.client.post("/api/v1/analyze", json={})
         self.assertEqual(response.status_code, 422)
 
+    def test_frontend_can_preflight_json_analysis_request(self):
+        response = self.client.options(
+            "/api/v1/analyze",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["access-control-allow-origin"], "http://localhost:3000"
+        )
+
+    def test_other_origins_cannot_preflight(self):
+        response = self.client.options(
+            "/api/v1/analyze",
+            headers={
+                "Origin": "https://example.com",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+
     def test_openapi_documents_the_nested_response(self):
         schema = self.client.get("/openapi.json").json()
         response_schema = schema["paths"]["/api/v1/analyze"]["post"]["responses"][
