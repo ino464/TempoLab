@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { Chess } from "chess.js";
-import { replayVariation } from "../app/variation.ts";
+import { formatGameMove, replayVariation } from "../app/variation.ts";
 
 test("replays moves from the supplied starting position", () => {
   const initial = new Chess().fen();
@@ -36,4 +36,15 @@ test("stops safely on invalid input and keeps the valid prefix", () => {
     replayVariation(new Chess().fen(), ["oops"]).error,
     /Invalid move/,
   );
+});
+
+test("formats played moves using the position's side and move number", () => {
+  const board = new Chess();
+  assert.equal(formatGameMove(board.fen(), "f2f3"), "1. f3");
+  board.move("f3");
+  assert.equal(formatGameMove(board.fen(), "e7e5"), "1... e5");
+
+  const blackStarts = "r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 17";
+  assert.equal(formatGameMove(blackStarts, "e8g8"), "17... O-O");
+  assert.equal(formatGameMove("invalid", "e2e4"), "e2e4");
 });

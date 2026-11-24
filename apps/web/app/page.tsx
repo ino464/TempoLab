@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { replayVariation } from "./variation";
+import { formatGameMove, replayVariation } from "./variation";
 
 type CriticalPosition = {
   ply: number;
@@ -14,6 +14,7 @@ type CriticalPosition = {
 };
 
 type AnalysisResponse = {
+  analysis: CriticalPosition[];
   critical_positions: CriticalPosition[];
 };
 
@@ -72,6 +73,7 @@ function Chessboard({ fen }: { fen: string }) {
 export default function Home() {
   const [pgn, setPgn] = useState("");
   const [positions, setPositions] = useState<CriticalPosition[] | null>(null);
+  const [gameMoves, setGameMoves] = useState<CriticalPosition[] | null>(null);
   const [selectedPly, setSelectedPly] = useState<number | null>(null);
   const [replayIndex, setReplayIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -81,6 +83,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     setPositions(null);
+    setGameMoves(null);
     setSelectedPly(null);
     setReplayIndex(0);
 
@@ -107,8 +110,11 @@ export default function Home() {
       }
 
       const result: AnalysisResponse = await response.json();
+      setGameMoves(result.analysis);
       setPositions(result.critical_positions);
-      setSelectedPly(result.critical_positions[0]?.ply ?? null);
+      setSelectedPly(
+        result.critical_positions[0]?.ply ?? result.analysis[0]?.ply ?? null,
+      );
     } catch (error) {
       setError(
         error instanceof TypeError
@@ -122,7 +128,7 @@ export default function Home() {
     }
   }
 
-  const selectedPosition = positions?.find(
+  const selectedPosition = gameMoves?.find(
     (position) => position.ply === selectedPly,
   );
   const replay = useMemo(
@@ -147,6 +153,7 @@ export default function Home() {
         onChange={(event) => {
           setPgn(event.target.value);
           setPositions(null);
+          setGameMoves(null);
           setSelectedPly(null);
           setReplayIndex(0);
           setError(null);
@@ -168,6 +175,31 @@ export default function Home() {
 
       {loading && <p role="status">Analyzing your game with Stockfish...</p>}
       {error && <p role="alert">{error}</p>}
+
+      {gameMoves !== null && (
+        <section aria-labelledby="game-moves">
+          <h2 id="game-moves" className="text-xl font-semibold">
+            Game moves
+          </h2>
+          <ol className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+            {gameMoves.map((position) => (
+              <li key={position.ply}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPly(position.ply);
+                    setReplayIndex(0);
+                  }}
+                  aria-pressed={selectedPly === position.ply}
+                  className="underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  {formatGameMove(position.fen_before, position.move)}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       {positions !== null && (
         <section aria-labelledby="critical-positions">
