@@ -7,6 +7,7 @@ type CriticalPosition = {
   move: string;
   fen_before: string;
   best_move_before: string | null;
+  principal_variation_before: string[];
   centipawn: number | null;
 };
 
@@ -192,6 +193,14 @@ export default function Home() {
           </h2>
           <Chessboard fen={selectedPosition.fen_before} />
           <p>White is at the bottom.</p>
+          <div>
+            <h3 className="font-semibold">Stockfish’s best line</h3>
+            <p className="mt-1 break-words">
+              {selectedPosition.principal_variation_before.length > 0
+                ? selectedPosition.principal_variation_before.join(" ")
+                : "No line available for this position."}
+            </p>
+          </div>
         </section>
       )}
     </main>
