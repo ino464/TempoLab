@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node tests/variation.test.mjs"
+    "test": "node tests/variation.test.mjs && node tests/evaluation.test.mjs"
   },
   "dependencies": {
     "chess.js": "^1.4.0",

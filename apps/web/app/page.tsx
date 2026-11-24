@@ -2,15 +2,19 @@
 
 import { useMemo, useState } from "react";
 
+import { formatEvaluation, type EngineEvaluation } from "./evaluation";
 import { formatGameMove, replayVariation } from "./variation";
 
 type CriticalPosition = {
   ply: number;
   move: string;
   fen_before: string;
+  fen_after: string;
   best_move_before: string | null;
   principal_variation_before: string[];
   centipawn: number | null;
+  evaluation_before: EngineEvaluation;
+  evaluation_after: EngineEvaluation;
 };
 
 type AnalysisResponse = {
@@ -238,6 +242,35 @@ export default function Home() {
 
       {selectedPosition && (
         <section aria-labelledby="board-title" className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Selected move</h2>
+            <p>
+              {formatGameMove(
+                selectedPosition.fen_before,
+                selectedPosition.move,
+              )}
+            </p>
+            <p>
+              Before:{" "}
+              {formatEvaluation(
+                selectedPosition.evaluation_before,
+                selectedPosition.fen_before,
+              )}
+            </p>
+            <p>
+              After:{" "}
+              {formatEvaluation(
+                selectedPosition.evaluation_after,
+                selectedPosition.fen_after,
+              )}
+            </p>
+            <p>Position evaluations are from White’s perspective.</p>
+            <p>
+              {selectedPosition.centipawn === null
+                ? "Evaluation change: mate score involved"
+                : `Change for the moving player: ${selectedPosition.centipawn > 0 ? "+" : ""}${selectedPosition.centipawn} centipawns`}
+            </p>
+          </div>
           <h2 id="board-title" className="text-xl font-semibold">
             {replayIndex === 0
               ? "Position before the move"
