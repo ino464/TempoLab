@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -6,6 +8,16 @@ class EngineEvaluation(BaseModel):
 
     centipawns: int | None
     mate: int | None
+
+
+class EngineProvenance(BaseModel):
+    """Details for one Stockfish search, not the overall API request."""
+
+    engine_name: str
+    requested_depth: int
+    reported_depth: int | None
+    search_duration_ms: float
+    search_started_at: datetime
 
 
 class MoveAnalysis(BaseModel):
@@ -21,9 +33,11 @@ class MoveAnalysis(BaseModel):
     best_move_before: str | None
     principal_variation_before: list[str]
     evaluation_before: EngineEvaluation
+    provenance_before: EngineProvenance
     best_move_after: str | None
     principal_variation_after: list[str]
     evaluation_after: EngineEvaluation
+    provenance_after: EngineProvenance
 
 
 class AnalysisResponse(BaseModel):

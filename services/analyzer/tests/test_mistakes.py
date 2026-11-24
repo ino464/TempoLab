@@ -32,6 +32,13 @@ class MistakesTests(unittest.TestCase):
                 "evaluation": {"centipawns": cp, "mate": mate},
                 "best_move": None,
                 "principal_variation": [],
+                "provenance": {
+                    "engine_name": "Stockfish 19",
+                    "requested_depth": 14,
+                    "reported_depth": 14,
+                    "search_duration_ms": 5.0,
+                    "search_started_at": "2026-11-24T00:00:00+00:00",
+                },
             }
 
         scores = [

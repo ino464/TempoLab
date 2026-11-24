@@ -5,6 +5,14 @@ import { useMemo, useState } from "react";
 import { formatEvaluation, type EngineEvaluation } from "./evaluation";
 import { formatGameMove, replayVariation } from "./variation";
 
+type EngineProvenance = {
+  engine_name: string;
+  requested_depth: number;
+  reported_depth: number | null;
+  search_duration_ms: number;
+  search_started_at: string;
+};
+
 type CriticalPosition = {
   ply: number;
   move: string;
@@ -15,6 +23,8 @@ type CriticalPosition = {
   centipawn: number | null;
   evaluation_before: EngineEvaluation;
   evaluation_after: EngineEvaluation;
+  provenance_before: EngineProvenance;
+  provenance_after: EngineProvenance;
 };
 
 type AnalysisResponse = {
@@ -36,6 +46,30 @@ const pieces: Record<string, string> = {
   n: "♞",
   p: "♟",
 };
+
+function SearchDetails({
+  label,
+  provenance,
+}: {
+  label: string;
+  provenance: EngineProvenance;
+}) {
+  return (
+    <div>
+      <h4 className="font-semibold">{label}</h4>
+      <p>Engine: {provenance.engine_name}</p>
+      <p>Requested depth: {provenance.requested_depth}</p>
+      <p>Reported depth: {provenance.reported_depth ?? "Not reported"}</p>
+      <p>Search duration: {provenance.search_duration_ms} ms</p>
+      <p>
+        Search started:{" "}
+        <time dateTime={provenance.search_started_at}>
+          {provenance.search_started_at}
+        </time>
+      </p>
+    </div>
+  );
+}
 
 function Chessboard({ fen }: { fen: string }) {
   const ranks = fen.split(" ")[0].split("/");
@@ -271,6 +305,19 @@ export default function Home() {
                 : `Change for the moving player: ${selectedPosition.centipawn > 0 ? "+" : ""}${selectedPosition.centipawn} centipawns`}
             </p>
           </div>
+          <details>
+            <summary>Analysis details</summary>
+            <div className="mt-2 space-y-3">
+              <SearchDetails
+                label="Before the move"
+                provenance={selectedPosition.provenance_before}
+              />
+              <SearchDetails
+                label="After the move"
+                provenance={selectedPosition.provenance_after}
+              />
+            </div>
+          </details>
           <h2 id="board-title" className="text-xl font-semibold">
             {replayIndex === 0
               ? "Position before the move"
