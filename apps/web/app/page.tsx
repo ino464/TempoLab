@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+import { replayVariation } from "./variation";
 
 type CriticalPosition = {
   ply: number;
@@ -71,6 +73,7 @@ export default function Home() {
   const [pgn, setPgn] = useState("");
   const [positions, setPositions] = useState<CriticalPosition[] | null>(null);
   const [selectedPly, setSelectedPly] = useState<number | null>(null);
+  const [replayIndex, setReplayIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +82,7 @@ export default function Home() {
     setError(null);
     setPositions(null);
     setSelectedPly(null);
+    setReplayIndex(0);
 
     try {
       const response = await fetch("http://127.0.0.1:8000/api/v1/analyze", {
@@ -121,6 +125,16 @@ export default function Home() {
   const selectedPosition = positions?.find(
     (position) => position.ply === selectedPly,
   );
+  const replay = useMemo(
+    () =>
+      selectedPosition
+        ? replayVariation(
+            selectedPosition.fen_before,
+            selectedPosition.principal_variation_before,
+          )
+        : null,
+    [selectedPosition],
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
@@ -134,6 +148,7 @@ export default function Home() {
           setPgn(event.target.value);
           setPositions(null);
           setSelectedPly(null);
+          setReplayIndex(0);
           setError(null);
         }}
         placeholder="Paste your PGN here..."
@@ -167,7 +182,10 @@ export default function Home() {
                 <li key={position.ply}>
                   <button
                     type="button"
-                    onClick={() => setSelectedPly(position.ply)}
+                    onClick={() => {
+                      setSelectedPly(position.ply);
+                      setReplayIndex(0);
+                    }}
                     aria-pressed={selectedPly === position.ply}
                     className="underline focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
@@ -189,18 +207,55 @@ export default function Home() {
       {selectedPosition && (
         <section aria-labelledby="board-title" className="flex flex-col gap-3">
           <h2 id="board-title" className="text-xl font-semibold">
-            Position before the move
+            {replayIndex === 0
+              ? "Position before the move"
+              : "Stockfish’s suggested line"}
           </h2>
-          <Chessboard fen={selectedPosition.fen_before} />
+          {replay?.positions[replayIndex] && (
+            <Chessboard fen={replay.positions[replayIndex]} />
+          )}
           <p>White is at the bottom.</p>
           <div>
             <h3 className="font-semibold">Stockfish’s best line</h3>
             <p className="mt-1 break-words">
-              {selectedPosition.principal_variation_before.length > 0
-                ? selectedPosition.principal_variation_before.join(" ")
+              {replay && replay.moves.length > 0
+                ? replay.moves.join(" ")
                 : "No line available for this position."}
             </p>
           </div>
+          {replay && (
+            <>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReplayIndex((index) => Math.max(0, index - 1))
+                  }
+                  disabled={replayIndex === 0}
+                  className="border px-4 py-2 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReplayIndex((index) =>
+                      Math.min(replay.moves.length, index + 1),
+                    )
+                  }
+                  disabled={replayIndex >= replay.moves.length}
+                  className="border px-4 py-2 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+              <p role="status">
+                Line move {replayIndex} of {replay.moves.length}
+                {replayIndex > 0 ? `: ${replay.moves[replayIndex - 1]}` : ""}
+              </p>
+              {replay.error && <p role="alert">{replay.error}</p>}
+            </>
+          )}
         </section>
       )}
     </main>
