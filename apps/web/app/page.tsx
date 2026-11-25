@@ -1,36 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 
-import { formatEvaluation, type EngineEvaluation } from "./evaluation";
+import { formatEvaluation } from "./evaluation";
+import {
+  parseSavedAnalysis,
+  type AnalysisResponse,
+  type CriticalPosition,
+  type EngineProvenance,
+  type SavedAnalysis,
+} from "./saved-analysis";
 import { formatGameMove, replayVariation } from "./variation";
-
-type EngineProvenance = {
-  engine_name: string;
-  requested_depth: number;
-  reported_depth: number | null;
-  search_duration_ms: number;
-  search_started_at: string;
-};
-
-type CriticalPosition = {
-  ply: number;
-  move: string;
-  fen_before: string;
-  fen_after: string;
-  best_move_before: string | null;
-  principal_variation_before: string[];
-  centipawn: number | null;
-  evaluation_before: EngineEvaluation;
-  evaluation_after: EngineEvaluation;
-  provenance_before: EngineProvenance;
-  provenance_after: EngineProvenance;
-};
-
-type AnalysisResponse = {
-  analysis: CriticalPosition[];
-  critical_positions: CriticalPosition[];
-};
 
 const pieces: Record<string, string> = {
   K: "♔",
@@ -116,6 +96,55 @@ export default function Home() {
   const [replayIndex, setReplayIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imported, setImported] = useState(false);
+
+  function showResult(result: AnalysisResponse) {
+    setGameMoves(result.analysis);
+    setPositions(result.critical_positions);
+    setSelectedPly(
+      result.critical_positions[0]?.ply ?? result.analysis[0]?.ply ?? null,
+    );
+    setReplayIndex(0);
+  }
+
+  function saveAnalysis() {
+    if (!gameMoves || !positions) return;
+    const saved: SavedAnalysis = {
+      format: "tempolab-analysis",
+      version: 1,
+      pgn,
+      result: { analysis: gameMoves, critical_positions: positions },
+    };
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(saved, null, 2)], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "tempolab-analysis.json";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function openAnalysis(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      if (file.size > 5 * 1024 * 1024)
+        throw new Error("Analysis file must be 5 MB or smaller.");
+      const saved = parseSavedAnalysis(await file.text());
+      setPgn(saved.pgn);
+      showResult(saved.result);
+      setImported(true);
+      setError(null);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not open the analysis file.",
+      );
+    }
+  }
 
   async function handleAnalyze() {
     setLoading(true);
@@ -124,6 +153,7 @@ export default function Home() {
     setGameMoves(null);
     setSelectedPly(null);
     setReplayIndex(0);
+    setImported(false);
 
     try {
       const response = await fetch("http://127.0.0.1:8000/api/v1/analyze", {
@@ -148,11 +178,7 @@ export default function Home() {
       }
 
       const result: AnalysisResponse = await response.json();
-      setGameMoves(result.analysis);
-      setPositions(result.critical_positions);
-      setSelectedPly(
-        result.critical_positions[0]?.ply ?? result.analysis[0]?.ply ?? null,
-      );
+      showResult(result);
     } catch (error) {
       setError(
         error instanceof TypeError
@@ -195,6 +221,7 @@ export default function Home() {
           setSelectedPly(null);
           setReplayIndex(0);
           setError(null);
+          setImported(false);
         }}
         placeholder="Paste your PGN here..."
         rows={10}
@@ -210,6 +237,31 @@ export default function Home() {
       >
         {loading ? "Analyzing..." : "Analyze game"}
       </button>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={saveAnalysis}
+          disabled={loading || !gameMoves}
+          className="border px-4 py-2 disabled:opacity-50"
+        >
+          Save analysis
+        </button>
+        <label htmlFor="saved-analysis">Open saved analysis</label>
+        <input
+          id="saved-analysis"
+          type="file"
+          accept=".json,application/json"
+          onChange={openAnalysis}
+          disabled={loading}
+        />
+      </div>
+      {imported && (
+        <p>
+          Opened from a file. Imported results have not been rechecked by
+          Stockfish.
+        </p>
+      )}
 
       {loading && <p role="status">Analyzing your game with Stockfish...</p>}
       {error && <p role="alert">{error}</p>}
