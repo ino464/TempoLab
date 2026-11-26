@@ -30,6 +30,13 @@ class AnalysisAPITests(unittest.TestCase):
                 "evaluation": {"centipawns": cp, "mate": None},
                 "best_move": None,
                 "principal_variation": [],
+                "provenance": {
+                    "engine_name": "Stockfish 19",
+                    "requested_depth": 14,
+                    "reported_depth": 12,
+                    "search_duration_ms": 25.5,
+                    "search_started_at": "2026-11-24T00:00:00+00:00",
+                },
             }
 
         with patch(
@@ -39,6 +46,12 @@ class AnalysisAPITests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["analysis"][0]["move"], "f2f3")
         self.assertEqual(response.json()["critical_positions"][0]["centipawn"], -50)
+        move = response.json()["analysis"][0]
+        self.assertEqual(move["provenance_before"]["engine_name"], "Stockfish 19")
+        self.assertEqual(move["provenance_after"]["requested_depth"], 14)
+        self.assertEqual(move["provenance_after"]["reported_depth"], 12)
+        self.assertEqual(move["provenance_after"]["search_duration_ms"], 25.5)
+        self.assertIn("2026-11-24", move["provenance_before"]["search_started_at"])
 
     def test_other_value_errors_are_not_reported_as_invalid_pgn(self):
         with patch(
@@ -91,6 +104,8 @@ class AnalysisAPITests(unittest.TestCase):
         )
         self.assertIn("evaluation_before", models["MoveAnalysis"]["properties"])
         self.assertIn("mate", models["EngineEvaluation"]["properties"])
+        self.assertIn("provenance_before", models["MoveAnalysis"]["properties"])
+        self.assertIn("reported_depth", models["EngineProvenance"]["properties"])
 
     def test_invalid_analysis_output_is_a_server_error(self):
         with (

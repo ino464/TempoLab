@@ -1,0 +1,52 @@
+[
+  {
+    "id": "white-01",
+    "fen": "4k3/8/4K3/8/8/8/7r/7Q w - - 0 1",
+    "best_move": "h1a8"
+  },
+  {
+    "id": "white-02",
+    "fen": "3k4/1Q6/2K5/8/r7/8/8/8 w - - 0 1",
+    "best_move": "b7d7"
+  },
+  {
+    "id": "white-03",
+    "fen": "7k/5K2/4Q3/8/8/r7/8/8 w - - 0 1",
+    "best_move": "e6h6"
+  },
+  {
+    "id": "white-04",
+    "fen": "8/k1K5/8/6Q1/8/8/8/3r4 w - - 0 1",
+    "best_move": "g5a5"
+  },
+  {
+    "id": "white-05",
+    "fen": "8/1Q6/8/8/5r2/2K5/8/k7 w - - 0 1",
+    "best_move": "b7b2"
+  },
+  {
+    "id": "black-01",
+    "fen": "R7/8/8/8/q7/8/5k2/7K b - - 0 1",
+    "best_move": "a4h4"
+  },
+  {
+    "id": "black-02",
+    "fen": "8/5R2/8/8/8/2k1q3/8/3K4 b - - 0 1",
+    "best_move": "e3d2"
+  },
+  {
+    "id": "black-03",
+    "fen": "8/5q2/8/8/8/k7/7R/K7 b - - 0 1",
+    "best_move": "f7f1"
+  },
+  {
+    "id": "black-04",
+    "fen": "8/8/6q1/4R3/8/5k1K/8/8 b - - 0 1",
+    "best_move": "g6g3"
+  },
+  {
+    "id": "black-05",
+    "fen": "5K2/7R/6k1/3q4/8/8/8/8 b - - 0 1",
+    "best_move": "d5d8"
+  }
+]

@@ -34,9 +34,11 @@ def analyze(pgn_text):
             "best_move_before": before_analysis["best_move"],
             "principal_variation_before": before_analysis["principal_variation"],
             "evaluation_before": before_analysis["evaluation"],
+            "provenance_before": before_analysis["provenance"],
             "best_move_after": after_analysis["best_move"],
             "principal_variation_after": after_analysis["principal_variation"],
             "evaluation_after": after_analysis["evaluation"],
+            "provenance_after": after_analysis["provenance"],
         }
         evaluations.append(evaluation)
     return evaluations

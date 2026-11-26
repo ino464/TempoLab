@@ -6,6 +6,18 @@ export type VariationReplay = {
   error: string | null;
 };
 
+/** Format a played UCI move with its actual move number and side. */
+export function formatGameMove(fen: string, uci: string): string {
+  try {
+    const board = new Chess(fen);
+    const prefix = `${board.moveNumber()}${board.turn() === "w" ? "." : "..."}`;
+    const replay = replayVariation(fen, [uci]);
+    return `${prefix} ${replay.moves[0] ?? uci}`;
+  } catch {
+    return uci;
+  }
+}
+
 /** Build each board position in a UCI principal variation. */
 export function replayVariation(
   fen: string,

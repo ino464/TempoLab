@@ -1,21 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 
-import { replayVariation } from "./variation";
-
-type CriticalPosition = {
-  ply: number;
-  move: string;
-  fen_before: string;
-  best_move_before: string | null;
-  principal_variation_before: string[];
-  centipawn: number | null;
-};
-
-type AnalysisResponse = {
-  critical_positions: CriticalPosition[];
-};
+import { formatEvaluation } from "./evaluation";
+import {
+  parseSavedAnalysis,
+  type AnalysisResponse,
+  type CriticalPosition,
+  type EngineProvenance,
+  type SavedAnalysis,
+} from "./saved-analysis";
+import { formatGameMove, replayVariation } from "./variation";
 
 const pieces: Record<string, string> = {
   K: "♔",
@@ -31,6 +26,30 @@ const pieces: Record<string, string> = {
   n: "♞",
   p: "♟",
 };
+
+function SearchDetails({
+  label,
+  provenance,
+}: {
+  label: string;
+  provenance: EngineProvenance;
+}) {
+  return (
+    <div>
+      <h4 className="font-semibold">{label}</h4>
+      <p>Engine: {provenance.engine_name}</p>
+      <p>Requested depth: {provenance.requested_depth}</p>
+      <p>Reported depth: {provenance.reported_depth ?? "Not reported"}</p>
+      <p>Search duration: {provenance.search_duration_ms} ms</p>
+      <p>
+        Search started:{" "}
+        <time dateTime={provenance.search_started_at}>
+          {provenance.search_started_at}
+        </time>
+      </p>
+    </div>
+  );
+}
 
 function Chessboard({ fen }: { fen: string }) {
   const ranks = fen.split(" ")[0].split("/");
@@ -72,17 +91,69 @@ function Chessboard({ fen }: { fen: string }) {
 export default function Home() {
   const [pgn, setPgn] = useState("");
   const [positions, setPositions] = useState<CriticalPosition[] | null>(null);
+  const [gameMoves, setGameMoves] = useState<CriticalPosition[] | null>(null);
   const [selectedPly, setSelectedPly] = useState<number | null>(null);
   const [replayIndex, setReplayIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imported, setImported] = useState(false);
+
+  function showResult(result: AnalysisResponse) {
+    setGameMoves(result.analysis);
+    setPositions(result.critical_positions);
+    setSelectedPly(
+      result.critical_positions[0]?.ply ?? result.analysis[0]?.ply ?? null,
+    );
+    setReplayIndex(0);
+  }
+
+  function saveAnalysis() {
+    if (!gameMoves || !positions) return;
+    const saved: SavedAnalysis = {
+      format: "tempolab-analysis",
+      version: 1,
+      pgn,
+      result: { analysis: gameMoves, critical_positions: positions },
+    };
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(saved, null, 2)], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "tempolab-analysis.json";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function openAnalysis(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      if (file.size > 5 * 1024 * 1024)
+        throw new Error("Analysis file must be 5 MB or smaller.");
+      const saved = parseSavedAnalysis(await file.text());
+      setPgn(saved.pgn);
+      showResult(saved.result);
+      setImported(true);
+      setError(null);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not open the analysis file.",
+      );
+    }
+  }
 
   async function handleAnalyze() {
     setLoading(true);
     setError(null);
     setPositions(null);
+    setGameMoves(null);
     setSelectedPly(null);
     setReplayIndex(0);
+    setImported(false);
 
     try {
       const response = await fetch("http://127.0.0.1:8000/api/v1/analyze", {
@@ -107,8 +178,7 @@ export default function Home() {
       }
 
       const result: AnalysisResponse = await response.json();
-      setPositions(result.critical_positions);
-      setSelectedPly(result.critical_positions[0]?.ply ?? null);
+      showResult(result);
     } catch (error) {
       setError(
         error instanceof TypeError
@@ -122,7 +192,7 @@ export default function Home() {
     }
   }
 
-  const selectedPosition = positions?.find(
+  const selectedPosition = gameMoves?.find(
     (position) => position.ply === selectedPly,
   );
   const replay = useMemo(
@@ -147,9 +217,11 @@ export default function Home() {
         onChange={(event) => {
           setPgn(event.target.value);
           setPositions(null);
+          setGameMoves(null);
           setSelectedPly(null);
           setReplayIndex(0);
           setError(null);
+          setImported(false);
         }}
         placeholder="Paste your PGN here..."
         rows={10}
@@ -166,8 +238,58 @@ export default function Home() {
         {loading ? "Analyzing..." : "Analyze game"}
       </button>
 
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={saveAnalysis}
+          disabled={loading || !gameMoves}
+          className="border px-4 py-2 disabled:opacity-50"
+        >
+          Save analysis
+        </button>
+        <label htmlFor="saved-analysis">Open saved analysis</label>
+        <input
+          id="saved-analysis"
+          type="file"
+          accept=".json,application/json"
+          onChange={openAnalysis}
+          disabled={loading}
+        />
+      </div>
+      {imported && (
+        <p>
+          Opened from a file. Imported results have not been rechecked by
+          Stockfish.
+        </p>
+      )}
+
       {loading && <p role="status">Analyzing your game with Stockfish...</p>}
       {error && <p role="alert">{error}</p>}
+
+      {gameMoves !== null && (
+        <section aria-labelledby="game-moves">
+          <h2 id="game-moves" className="text-xl font-semibold">
+            Game moves
+          </h2>
+          <ol className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+            {gameMoves.map((position) => (
+              <li key={position.ply}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPly(position.ply);
+                    setReplayIndex(0);
+                  }}
+                  aria-pressed={selectedPly === position.ply}
+                  className="underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  {formatGameMove(position.fen_before, position.move)}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       {positions !== null && (
         <section aria-labelledby="critical-positions">
@@ -206,6 +328,48 @@ export default function Home() {
 
       {selectedPosition && (
         <section aria-labelledby="board-title" className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Selected move</h2>
+            <p>
+              {formatGameMove(
+                selectedPosition.fen_before,
+                selectedPosition.move,
+              )}
+            </p>
+            <p>
+              Before:{" "}
+              {formatEvaluation(
+                selectedPosition.evaluation_before,
+                selectedPosition.fen_before,
+              )}
+            </p>
+            <p>
+              After:{" "}
+              {formatEvaluation(
+                selectedPosition.evaluation_after,
+                selectedPosition.fen_after,
+              )}
+            </p>
+            <p>Position evaluations are from White’s perspective.</p>
+            <p>
+              {selectedPosition.centipawn === null
+                ? "Evaluation change: mate score involved"
+                : `Change for the moving player: ${selectedPosition.centipawn > 0 ? "+" : ""}${selectedPosition.centipawn} centipawns`}
+            </p>
+          </div>
+          <details>
+            <summary>Analysis details</summary>
+            <div className="mt-2 space-y-3">
+              <SearchDetails
+                label="Before the move"
+                provenance={selectedPosition.provenance_before}
+              />
+              <SearchDetails
+                label="After the move"
+                provenance={selectedPosition.provenance_after}
+              />
+            </div>
+          </details>
           <h2 id="board-title" className="text-xl font-semibold">
             {replayIndex === 0
               ? "Position before the move"
